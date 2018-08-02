@@ -2,55 +2,20 @@ import numpy as np
 import paho.mqtt.client as mqtt
 import matplotlib.pyplot as plt
 import time, threading
-from fastdtw import fastdtw
+import vehicleDynamics as vd
+import bus as bus
 from scipy.spatial.distance import euclidean
 
+# summarise all buses on the database
 def summary():
     global fleet
 
     for busnum in fleet:
         curBus = fleet[busnum]
-        print('Bus number', curBus.number, 'has stopped', curBus.numOfStops , 
-                'times total passengers served ', curBus.usage)
-
+        print('Bus {}/{} stops {} times, serves {} person, avg.speed {:.2f}'.format(
+            curBus.number, curBus.route, curBus.numOfStops, curBus.usage, curBus.avgSpeed)) 
 
     threading.Timer(60, summary).start()
-
-
-
-
-# determine if the bus has stopped
-def hasStopped(v):
-
-    vref = [6.2,5.94,6.2,5.92,6.0499997,
-            5.8199997,5.5499997,4.5899997,3.81,3.53,3.01,
-            2.48,2.56, 3.4499998,3.25,2.27,1.04,0.17,
-            0.,0.31,1.5,2.5,1.9,0.5,0.,0.0,0.0,0.0,
-            0.,0.,0.,0.,0.]
-
-    distance, path = fastdtw(v, vref, dist=euclidean)
-    #print('stop dtw ',distance)
-
-    if distance < 25:
-        return True 
-    else:
-        return False
-
-# determine if the bus has started
-def hasStarted(v):
-    #vref = [6.0,5.84,5.62,5.4799997,
-    #        5.2199997,4.9499997,4.5899997,3.81,3.53,3.01,
-    #        2.48,2.56, 3.4499998,3.25,2.27,1.04,0.17,
-    #        0.,0.31,1.5,2.5,1.9,0.5,0.,0.,0.]
-    
-    #distance, path = fastdtw(v, vref[::-1], dist=euclidean)
-    #print('start dtw ',distance)
-    
-    #if distance < 20:
-    if np.mean(v[-10:]) > 4:
-        return True 
-    else:
-        return False
 
 
 def parsePayload(msg):
@@ -78,7 +43,7 @@ def handle_message(client, userdata, msg):
     inBus = parsePayload(msg.payload)
 
     if inBus["bus"] not in fleet: # if current bus number is not in fleet
-        fleet[inBus["bus"]] = vBus() # create new bus        
+        fleet[inBus["bus"]] = bus.vBus() # create new bus        
         print("Bus number ", inBus["bus"], " added")
 
     
@@ -108,13 +73,13 @@ def handle_message(client, userdata, msg):
     # start/stop detection based on DTW
     location_diff = euclidean([curBus.prev_lat, curBus.prev_lng],[curBus.lat, curBus.lng])
         
-    if hasStopped(curBus.y[-20:]) and location_diff < 4e-5 and not curBus.stopped:
+    if vd.hasStopped(curBus.y[-20:]) and location_diff < 4e-5 and not curBus.stopped:
         print('Car number ', curBus.number,'/', curBus.route,
                 ' has stopped at (', curBus.lat, curBus.lng,')')
         curBus.stopped = True
         curBus.numOfStops += 1
 
-    if hasStarted(curBus.y[-20:]) and curBus.stopped:
+    if vd.hasStarted(curBus.y[-20:]) and curBus.stopped:
         print('Car number ', curBus.number, '/', curBus.route, 
                 ' is departing from (', curBus.lat, curBus.lng,')')
         curBus.stopped = False
@@ -123,7 +88,11 @@ def handle_message(client, userdata, msg):
     curBus.prev_lng = curBus.lng
         
     # recoding passenger
-    curBus.usage += float(inBus["geton"])
+    curBus.usage += int(inBus["geton"])
+
+    # recording average speed
+    if curBus.y[-1] > 4:
+        curBus.avgSpeed = vd.updateAvgSpeed(curBus.avgSpeed, curBus.x[-1], curBus.y[-1])
     
     
     # for plotting
@@ -141,30 +110,10 @@ client.on_message = handle_message
 client.username_pw_set("cmu_opd","morchor@4.0now")
 client.connect("202.28.244.147")
 
-# the plotting
-#plt.ion()
-#plt.ylim(-1,10)
-#plt.xlim(-1,101)
-#ax = plt.gca()
-#line, = ax.plot(0,0,'bo-')
+# setting up empty dictionary for storing buses
+fleet = {} 
 
-# bus object
-class vBus:
-    stopped = False # for indicating if the bus has stopped
-    number = 0
-    route = 0
-    numOfStops = 0
-    prev_lat = 0
-    prev_lng = 0
-    lat = 0
-    lng = 0
-    usage = 0
-    x = np.zeros(100) # representing time
-    y = np.zeros(100) # representing speed at time t
-    
-
-fleet = {} # empty dictionary
-
+# first call to summary function which
 summary()
 
 # Blocking call that processes network traffic, dispatches callbacks and
