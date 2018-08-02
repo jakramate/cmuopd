@@ -1,0 +1,5 @@
+# TODO tasks for CMUOPD
+
+1. Adding stations information (possibly in XML form)
+2. Discriminating between stopping at the red lights or at the stations
+3. Adding database transaction every....  hour ?
