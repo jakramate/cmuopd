@@ -2,6 +2,9 @@ import numpy as np
 from fastdtw import fastdtw
 from scipy.spatial.distance import euclidean
 
+# return the distance travelled in metres
+def distanceTravelled(v):
+    return (v[-1]+v[-2])/2 
 
 # calculating average speed
 def updateAvgSpeed(avgSpeed, t, v):
