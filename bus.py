@@ -15,6 +15,7 @@ class vBus:
     prev_lng = 0       # previous lng
     usage = 0          # total passengers today
     avgSpeed = 0       # storing average speed
+    disTravelled = 0   # total distance travelled 
     x = np.zeros(100)  # numpy array for storing timesteps
     y = np.zeros(100)  # numpy array for storing speed at each timesteps
 
