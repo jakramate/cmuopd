@@ -12,10 +12,7 @@ def summary():
 
     for busnum in fleet:
         curBus = fleet[busnum]
-        print('Bus {}/{} stops {} times, 
-                serves {} person, 
-                avg.speed {:.2f} km/h,
-                travelled {:.2f} kms'.format(
+        print('Bus {}/{} stops {} times, serves {} person, avg.speed {:.2f} km/h, travelled {:.2f} kms'.format(
             curBus.number, curBus.route, 
             curBus.numOfStops, curBus.usage, 
             curBus.avgSpeed*3.6, curBus.disTravelled/1000 ))
@@ -97,11 +94,12 @@ def handle_message(client, userdata, msg):
     curBus.usage += int(inBus["geton"])
 
     # recording average speed
-    if curBus.y[-1] > 4:
+    if not curBus.stopped:
         curBus.avgSpeed = vd.updateAvgSpeed(curBus.avgSpeed, curBus.x[-1], curBus.y[-1])
    
     # recording total distance travelled 
-    
+    curBus.disTravelled = curBus.disTravelled + vd.distanceTravelled(curBus.y) 
+
     # for plotting
     #    line.set_ydata(y)
     #    line.set_xdata(x)
