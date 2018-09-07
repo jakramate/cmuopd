@@ -112,7 +112,7 @@ def handle_message(client, userdata, msg):
 client = mqtt.Client()
 client.on_connect = handle_connect
 client.on_message = handle_message
-client.username_pw_set("cmu_opd","morchor@4.0now")
+client.username_pw_set("xxx","xxxx")
 client.connect("202.28.244.147")
 
 # setting up empty dictionary for storing buses
